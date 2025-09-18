@@ -31,12 +31,16 @@ webrtc_streamer(
     mode=WebRtcMode.SENDRECV,
     audio_processor_factory=AudioProcessor,
     media_stream_constraints={"audio": True, "video": False},
-     rtc_configuration={
-        "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}]
-    },
+    rtc_configuration={
+        "iceServers": [
+            {"urls": ["stun:stun.l.google.com:19302"]},
+            {"urls": ["turn:turn.myserver.com:3478"], "username": "user", "credential": "pass"}
+        ]
+    }
 )
 
 if "last_text" in st.session_state:
     st.subheader("Hasil Transkripsi 🎙️")
     st.write(st.session_state["last_text"])
+
 
