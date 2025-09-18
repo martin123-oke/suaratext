@@ -1,46 +1,27 @@
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, WebRtcMode, AudioProcessorBase
-import av
 import speech_recognition as sr
 
-st.title("🎤 Speech to Text Online dengan Streamlit")
+st.title("🎤 Ubah Suara ke Teks (Streamlit Cloud)")
 
-class AudioProcessor(AudioProcessorBase):
-    def __init__(self):
-        self.recognizer = sr.Recognizer()
+# Ambil audio dari microphone
+audio_file = st.audio_input("Rekam suara kamu:")
 
-    def recv_audio(self, frame: av.AudioFrame):
-        audio = frame.to_ndarray()
-        # Konversi ke objek AudioData
-        audio_data = sr.AudioData(
-            audio.tobytes(),
-            frame.sample_rate,
-            audio.dtype.itemsize * 8
-        )
+if audio_file is not None:
+    st.audio(audio_file)
+
+    # Simpan sementara file audio
+    with open("temp.wav", "wb") as f:
+        f.write(audio_file.getbuffer())
+
+    # Gunakan SpeechRecognition
+    recognizer = sr.Recognizer()
+    with sr.AudioFile("temp.wav") as source:
+        audio_data = recognizer.record(source)
+
         try:
-            text = self.recognizer.recognize_google(audio_data, language="id-ID")
-            st.session_state["last_text"] = text
+            text = recognizer.recognize_google(audio_data, language="id-ID")
+            st.success(f"Teks hasil suara: {text}")
         except sr.UnknownValueError:
-            pass
+            st.error("❌ Tidak bisa mengenali suara.")
         except sr.RequestError as e:
-            st.warning(f"Google API error: {e}")
-        return frame
-
-webrtc_streamer(
-    key="speech-to-text",
-    mode=WebRtcMode.SENDRECV,
-    audio_processor_factory=AudioProcessor,
-    media_stream_constraints={"audio": True, "video": False},
-    rtc_configuration={
-        "iceServers": [
-            {"urls": ["stun:stun.l.google.com:19302"]},
-            {"urls": ["turn:turn.myserver.com:3478"], "username": "user", "credential": "pass"}
-        ]
-    }
-)
-
-if "last_text" in st.session_state:
-    st.subheader("Hasil Transkripsi 🎙️")
-    st.write(st.session_state["last_text"])
-
-
+            st.error(f"⚠️ Gagal koneksi ke Google API: {e}")
